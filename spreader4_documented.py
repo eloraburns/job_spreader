@@ -27,13 +27,12 @@ def spreader_generator(blockpool, spread):
     # We need a real iterator for our feeders to share
     blockpool_iter = iter(blockpool)
     # The feeders pick off blocks from blockpool_iter lazily and return
-    # the elements of that each group in turn
+    # the elements of each group in turn
     feeders = [chain.from_iterable(blockpool_iter) for _ in range(spread)]
-    # We'll ignore all non-values from feeders that get the short straw
-    not_sentinel = lambda x: x is not sentinel
     # Now we'll zip our lazily-distributed spread-wide groups of jobs into stripes
     stripes = izip_longest(*feeders, fillvalue=sentinel)
     # and return all the values of the stripes in order
     flattened_spread = chain.from_iterable(stripes)
-    # But we'll filter out those non-values first
+    # And we won't return the non-values from feeders that get the short straw
+    not_sentinel = lambda x: x is not sentinel
     return ifilter(not_sentinel, flattened_spread)
