@@ -4,6 +4,7 @@
 require_once('spreader_helpers.php');
 require_once('spreader1.php');
 require_once('spreader2.php');
+require_once('spreader3.php');
 
 $jobs = array(
 	array("a1", "a2", "a3"),
@@ -52,6 +53,19 @@ foreach (range(1,4) as $spread) {
 foreach ($runs as $spread => $results) {
 	if ($results != $expected[$spread]) {
 		print "Mismatch on Spreader2 $spread\n";
+		var_dump($expected[$spread], $results);
+	}
+}
+
+
+$runs = array();
+foreach (range(1,4) as $spread) {
+	$runs[$spread] = iterator2array(new Py2PHPIterator(new Spreader3($jobs, $spread)));
+}
+
+foreach ($runs as $spread => $results) {
+	if ($results != $expected[$spread]) {
+		print "Mismatch on Spreader3 $spread\n";
 		var_dump($expected[$spread], $results);
 	}
 }
