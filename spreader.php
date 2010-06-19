@@ -1,4 +1,3 @@
-#!/usr/bin/env php
 <?
 
 /**
@@ -123,25 +122,4 @@ class Feeder {
 		} while (!$found);
 		return $next;
 	}
-}
-
-function make_jobs() {
-	return new PHP2PyIterator(array(
-		new PHP2PyIterator(array("a1", "a2", "a3")),
-		new PHP2PyIterator(array("b1")),
-		new PHP2PyIterator(array("c1", "c2", "c3"))
-	));
-}
-
-$runs = array();
-for ($x = 1; $x <= 4; $x++) {
-	$runs[] = new Spreader(make_jobs(), $x);
-}
-
-foreach ($runs as $run) {
-	$jobs_out = array();
-	foreach (new Py2PHPIterator($run) as $job) {
-		$jobs_out[] = "'$job'";
-	}
-	print "[".join(", ", $jobs_out)."]\n";
 }
