@@ -24,10 +24,11 @@ class PHP2PyIterator {
 
 /**
  * Converts a Python-style iterable into a PHP-style iterable.
- * Returns a constant key() and doesn't implement rewind(),
- * since foreach() doesn't need them, and neither do you
- * if you're using each() yourself.  Just make sure you check
- * === NULL for a key, because NULL == 0.
+ * Returns a constant key() and doesn't implement rewind();
+ * foreach() doesn't need them, and neither do you.
+ * If you're using each() just make sure you check
+ * key === NULL, because (0 == NULL) == TRUE.
+ * Yes that's intentional, it's to make sure you do it right.
  */
 class Py2PHPIterator implements Iterator {
 	function __construct($py_iterator) {
