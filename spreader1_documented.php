@@ -1,5 +1,16 @@
 <?
+
+/**
+ * Takes a list of lists, and provides a Python-style iterable over the lists
+ * such that elements from each sub-list occur at $spread intervals (until
+ * we get to the tail, at which point we have no guarantees; we're an eager
+ * bin packer).
+ */
 class Spreader1 {
+	/**
+	 * @param $blockpool Python-style iterable of Python-style iterables
+	 * @param $spread How far apart to spread the values within each sub-list
+	 */
 	function __construct($blockpool, $spread) {
 		$this->spread = $spread;
 		$this->feeders = array();
@@ -31,6 +42,9 @@ class Spreader1 {
 	}
 }
 
+/**
+ * @param $blockpool Must be something implementing a ->next() method, and throws StopIteration when it's empty.  Its values must also do this.
+ */
 class Feeder1 {
 	function __construct($blockpool) {
 		$this->blockpool = $blockpool;

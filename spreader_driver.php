@@ -5,6 +5,12 @@ require_once('spreader_helpers.php');
 require_once('spreader1.php');
 require_once('spreader2.php');
 
+$jobs = array(
+	array("a1", "a2", "a3"),
+	array("b1"),
+	array("c1", "c2", "c3")
+);
+
 function make_jobs() {
 	return new PHP2PyIterator(array(
 		new PHP2PyIterator(array("a1", "a2", "a3")),
@@ -24,20 +30,32 @@ $expected = array(
 	4 => array('a1', 'b1', 'c1', 'a2', 'c2', 'a3', 'c3')
 );
 
-foreach (array('Spreader1', 'Spreader2') as $implementation) {
-	$runs = array();
-	for ($spread = 1; $spread <= 4; $spread++) {
-		$runs[$spread] = new Py2PHPIterator(new Spreader(make_jobs(), $spread));
-	}
 
-	foreach ($runs as $spread => $results) {
-		$jobs_out = iterator2array($results);
-		if ($jobs_out != $expected[$spread]) {
-			print "Mismatch on $implementation $spread\n";
-		}
+$runs = array();
+foreach (range(1,4) as $spread) {
+	$runs[$spread] = iterator2array(new Py2PHPIterator(new Spreader1(make_jobs(), $spread)));
+}
+
+foreach ($runs as $spread => $results) {
+	if ($results != $expected[$spread]) {
+		print "Mismatch on Spreader1 $spread\n";
+		var_dump($expected[$spread], $results);
 	}
 }
 
-foreach ($expected as $jobs_out) {
-	print "[".join(", ", array_map('quoter', $jobs_out))."]\n";
+
+$runs = array();
+foreach (range(1,4) as $spread) {
+	$runs[$spread] = iterator2array(new Py2PHPIterator(new Spreader2($jobs, $spread)));
+}
+
+foreach ($runs as $spread => $results) {
+	if ($results != $expected[$spread]) {
+		print "Mismatch on Spreader2 $spread\n";
+		var_dump($expected[$spread], $results);
+	}
+}
+
+foreach ($expected as $results) {
+	print "[".join(", ", array_map('quoter', $results))."]\n";
 }
