@@ -1,69 +1,12 @@
 <?
 
 /**
- * Because Python got it right.
- */
-class StopIteration extends Exception {}
-
-/**
- * Converts a PHP-style iterable into a Python-style iterable.
- * ->next() returns values until the iterable is empty, then starts raising StopIteration.
- */
-class PHP2PyIterator {
-	function __construct($iterator) {
-		$this->iterator = $iterator;
-	}
-	function next() {
-		list($key, $value) = each($this->iterator);
-		if ($key === NULL) {
-			throw new StopIteration();
-		}
-		return $value;
-	}
-}
-
-/**
- * Converts a Python-style iterable into a PHP-style iterable.
- * Returns a constant key() and doesn't implement rewind(),
- * since foreach() doesn't need them, and neither do you
- * if you're using each() yourself.  Just make sure you check
- * === NULL for a key, because NULL == 0.
- */
-class Py2PHPIterator implements Iterator {
-	function __construct($py_iterator) {
-		$this->py_iterator = $py_iterator;
-		$this->next();
-	}
-	function current() {
-		return $this->current_value;
-	}
-	function key() {
-		return 0;
-	}
-	function next() {
-		try {
-			$this->current_value = $this->py_iterator->next();
-			$this->valid = TRUE;
-		} catch (StopIteration $e) {
-			$this->current_value = FALSE;
-			$this->valid = FALSE;
-		}
-	}
-	function rewind() {
-		/* Do nothing */
-	}
-	function valid() {
-		return $this->valid;
-	}
-}
-
-/**
  * Takes a list of lists, and provides a Python-style iterable over the lists
  * such that elements from each sub-list occur at $spread intervals (until
  * we get to the tail, at which point we have no guarantees; we're an eager
  * bin packer).
  */
-class Spreader {
+class Spreader2 {
 	/**
 	 * @param $blockpool Python-style iterable of Python-style iterables
 	 * @param $spread How far apart to spread the values within each sub-list
@@ -72,7 +15,7 @@ class Spreader {
 		$this->spread = $spread;
 		$this->feeders = array();
 		for ($x = 0; $x < $this->spread; $x++) {
-			$this->feeders[] = new Feeder($blockpool);
+			$this->feeders[] = new Feeder2($blockpool);
 		}
 		$this->current_index = 0;
 	}
@@ -102,7 +45,7 @@ class Spreader {
 /**
  * @param $blockpool Must be something implementing a ->next() method, and throws StopIteration when it's empty.  Its values must also do this.
  */
-class Feeder {
+class Feeder2 {
 	function __construct($blockpool) {
 		$this->blockpool = $blockpool;
 		$this->block = NULL;
