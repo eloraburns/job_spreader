@@ -26,12 +26,7 @@ def spreader_generator(blockpool, spread):
     sentinel = object()
     # We need a real iterator for our feeders to share
     blockpool_iter = iter(blockpool)
-    feeders = [feeder(blockpool_iter) for _ in range(spread)]
+    feeders = [chain.from_iterable(blockpool_iter) for _ in range(spread)]
     not_sentinel = lambda x: x is not sentinel
     flattened_spread = chain.from_iterable(izip_longest(*feeders, fillvalue=sentinel))
     return ifilter(not_sentinel, flattened_spread)
-
-def feeder(blockpool):
-    for block in blockpool:
-        for value in block:
-            yield value
