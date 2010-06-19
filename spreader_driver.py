@@ -14,8 +14,8 @@ outputs = {
 
 # Test the class-iterator-based version
 from spreader1 import Spreader
-for x in range(1,5):
-    assert list(Spreader(jobs, x)) == outputs[x], ('spreader1', x)
+for n, expected in outputs.iteritems():
+    assert list(Spreader(jobs, n)) == expected, ('spreader1', n)
 
 # Test all the generator-based versions
 generator_type_spreaders = [
@@ -27,9 +27,9 @@ generator_type_spreaders = [
 for modname in generator_type_spreaders:
     mod = __import__(modname)
     doctest.testmod(m=mod)
-    for x in range(1,5):
-        assert list(mod.spreader_generator(jobs, x)) == outputs[x], (modname, x)
+    for n, expected in outputs.iteritems():
+        assert list(mod.spreader_generator(jobs, n)) == expected, (modname, n)
 
 # Just to show that we're verifying against the same thing as the PHP
-for x in range(1,5):
-    print outputs[x]
+for n in sorted(outputs.iterkeys()):
+    print outputs[n]
