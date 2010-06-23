@@ -1,21 +1,28 @@
 h1. Job spreader
 
+Recently at work we were having trouble with resource contention in a job producer/multiple worker context.  The workload consisted of groups of jobs, where each group contended for a single resource (but not for each others resources).  On hearing this, my brain decided to come up with a scheduling scheme, whether I wanted to or not.
+
 h2. Problem statement
 
-You have a job dispatcher which generates groups of jobs, which are all put in a single queue.  You want to run jobs in parallel, as they'll be handled by concurrent workers, but jobs within a group contend for some shared resource.  Hence, you'd like to try spreading them around.  You could shuffle the whole lot, but then you'd need some undetermined number of jobs to shuffle.  You could take the whole batch, but that's silly because the first jobs could be processing while you're busy producing later ones.  It would also be nice if jobs in a group executed somewhat together, since there are caching benefits to executing those jobs together.
+We have a job dispatcher which generates groups of jobs, all of which are put in a single queue.  We want to run jobs in parallel--as they'll be handled by concurrent workers--but jobs within a group contend for some shared resource.  Hence, we'd like to spread them around.  We could shuffle the entire job queue, but then you'd need some undetermined number of jobs to get a good mix (we don't know how big each group of jobs is).  We could take all the jobs, but that's silly because the first jobs could be processing while we're busy producing later ones.  It would also be nice if jobs in a group executed somewhat together, since there are still caching benefits to executing those jobs in close proximity (just not at _exactly_ the same time).
 
 h2. The theory
 
-Let's say we have 10 workers.  Because some jobs are faster than others, we'd like to spread out the jobs so that each group's jobs occur every 12 jobs (with 11 other-group jobs in between).  What we can do is lazily bin-pack the incoming groups of jobs into "feeder" queues.  So the first 12 groups of jobs go into 12 feeder queues.  The spreader then takes one job from each queue in turn.  As each feeder runs out of jobs, it takes the next group and continues to produce.  When there are no more groups, that feeder becomes inactive, and we keep taking jobs from the remaining feeders.  Once all the feeders are exhausted, we're done!
+Let's say we have 10 workers.  Because some jobs are faster than others, we'd like to spread out the jobs so that each group's jobs occur every 12 jobs (with 11 other-group jobs in between).  What we can do is lazily bin-pack the incoming groups of jobs (the "block pool") into "feeder" queues.  So the first 12 groups of jobs go into 12 feeder queues.  The spreader then takes one job from each queue in turn.  As each feeder runs out of jobs, it takes the next group from the block pool and continues to produce single jobs.  When there are no more groups in the block pool, an empty feeder becomes inactive, and we keep taking jobs from the remaining feeders.  Once all the feeders are exhausted, we're done!
 
-For cases where each group is much smaller than the total number of jobs and the number of groups is much smaller than the number of feeders, we are basically guaranteed to have our desired spread between jobs for most of the spread.  At the tail end we might have some larger groups which get less spread out.  If you can arrange to have your smaller groups at the end, this shouldn't present any problems.
+For cases where each group is much smaller than the total number of jobs and the number of groups is much larger than the number of feeders, we are basically guaranteed to have our desired spread between jobs.  At the tail end we might have some larger groups which get less spread out.  Arranging for the bigger job groups to be produced first mitigates this issue.
 
 h2. The code
 
-The situation this came up in involved PHP, but I'm much happier in Python.  The first implementation was in Python (written on my Android phone (in the Android Scripting Environment) which has Python but not PHP), and I've managed to create a not-quite-so-horrible version for PHP.  If you can improve on the PHP (or Python!) code, I'd be interested to see it!
+At work the job producer is written in PHP, but I'm much happier in Python.  My first implementation was in Python (written on my Android phone (in the "Android Scripting Environment":http://code.google.com/p/android-scripting/ ) which has Python but not PHP), and I've managed to create a not-quite-so-horrible version for PHP.  If you can improve on the PHP (or Python!) code, I'd be interested to see it!
 
 I've shown the progression of code from first-implementation to I've-thought-about-this-too-much.  There's an urban story ("StackOverflow doesn't know if it's a myth":http://stackoverflow.com/questions/2898571/basis-for-claim-that-the-number-of-bugs-per-line-of-code-is-constant-regardless-o) that the number of defects per LoC is constant regardless of language.  Even if that's not the case, it's hard to argue that "spreader3_documented.php":/taavi/job_spreader/blob/master/spreader3_documented.php (&cong;39LoC, plus helpers) is less likely to have bugs than "spreader4_documented.py":/taavi/job_spreader/blob/master/spreader4_documented.py (&cong;9LoC).  Once you understand what "spreader4_documented.py":/taavi/job_spreader/blob/master/spreader4_documented.py is doing, there's nowhere for bugs to show up.
 
 You can prove for yourself that the code works by running "spreader_driver.php":/taavi/job_spreader/blob/master/spreader_driver.php and "spreader_driver.py":/taavi/job_spreader/blob/master/spreader_driver.py.  Each prints out the list of expected results at the end (used to assert that the code is working correctly) which you can diff to see that the PHP and Python do the same thing in the end.
+
+h2. Why github?
+
+It seemed to be the easiest way to upload a dozen files for the world to see, and be able to update them easily.  I'm not expecting anyone to fork this, but if you want to use the idea in your own job queueing that'd be awesome, and I'd love to hear about it.
+
 
 -- Taavi Burns (firstname at firstnamelastname dot ca)
