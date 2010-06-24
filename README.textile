@@ -1,16 +1,32 @@
 h1. Job spreader
 
-Recently at work we were having trouble with resource contention in a job producer/multiple worker context.  The workload consisted of groups of jobs, where each group contended for a single resource (but not for each others resources).  On hearing this, my brain decided to come up with a scheduling scheme, whether I wanted to or not.
+Recently at work we were having trouble with resource contention in a job producer/multiple worker context.  The workload consisted of groups of jobs, where each group contended for a single resource but not for each others' resources.  On hearing this, my brain decided to come up with a scheduling scheme to reduce contention, whether I wanted it to or not.
 
 h2. Problem statement
 
-We have a job dispatcher which generates groups of jobs, all of which are put in a single queue.  We want to run jobs in parallel--as they'll be handled by concurrent workers--but jobs within a group contend for some shared resource.  Hence, we'd like to spread them around.  We could shuffle the entire job queue, but then you'd need some undetermined number of jobs to get a good mix (we don't know how big each group of jobs is).  We could take all the jobs, but that's silly because the first jobs could be processing while we're busy producing later ones.  It would also be nice if jobs in a group executed somewhat together, since there are still caching benefits to executing those jobs in close proximity (just not at _exactly_ the same time).
+We have a job dispatcher which generates groups of jobs, with a varying number of jobs in each group.  Each group contains jobs which are related (they contend for a shared resource as a part of their processing) but logically independent (they can execute in any order, and other parts of their processing benefit hugely from parallelism).  Jobs in different groups don't contend for any shared resource.  Hence, we'd like to interleave the jobs from one group with jobs from other groups.
+
+One option is to run the dispatcher to completion, then randomly shuffle _all_ the jobs, but that's silly because the first jobs could be processing while the dispatcher is still working.  We'd also lose the caching benefits of having jobs in a group run close to each other in time.  The jobs may content for a resource, but we'd like to keep those resources from contending for cache space!
+
+Another option is to take only some of the groups at a time and shuffle them, but the groups are of (sometimes hugely) different lengths, so it's hard to know how many we need to get a good mix in a shuffle.  We could read groups until we have enough that the largest group is well-shuffled, but that could go on forever if we keep reading larger groups.  And if we stop short, we could get a very bad mix.
 
 h2. The theory
 
-Let's say we have 10 workers.  Because some jobs are faster than others, we'd like to spread out the jobs so that each group's jobs occur every 12 jobs (with 11 other-group jobs in between).  What we can do is lazily bin-pack the incoming groups of jobs (the "block pool") into "feeder" queues.  So the first 12 groups of jobs go into 12 feeder queues.  The spreader then takes one job from each queue in turn.  As each feeder runs out of jobs, it takes the next group from the block pool and continues to produce single jobs.  When there are no more groups in the block pool, an empty feeder becomes inactive, and we keep taking jobs from the remaining feeders.  Once all the feeders are exhausted, we're done!
+This algorithm has three logical parts: a dispatcher, a set of feeder queues, and a spreader.
 
-For cases where each group is much smaller than the total number of jobs and the number of groups is much larger than the number of feeders, we are basically guaranteed to have our desired spread between jobs.  At the tail end we might have some larger groups which get less spread out.  Arranging for the bigger job groups to be produced first mitigates this issue.
+The dispatcher generates groups of jobs.  Each group contains zero or more jobs.
+
+Each feeder queue asks for a group of jobs from the dispatcher and produces each of the jobs inside one at a time.  When the group it's working on is empty, it asks the dispatcher for another group of jobs.  When the dispatcher has no more groups of jobs to give, the feeder stops producing jobs.
+
+The spreader asks each feeder, in turn, for a job.  It produces each job as it gets them from the feeders.
+
+As an example, let's say we have 2 workers (a truly magic number).  Because some jobs are faster than others, we'd like to spread out the jobs so that each group's jobs occur every 3 jobs in the final output (2 workers plus a fudge factor since not all jobs run for the same length of time).  We'll have 3 feeders, so the first 3 groups from the dispatcher will go into each of the 3 feeders.  The spreader will start taking jobs from each feeder in turn.  As the feeder's job groups empty, each feeder will get the next group from the dispatcher.
+
+!job_spreader.png!
+
+Effectively what we're doing is lazily bin-pack the incoming groups of jobs from the dispatcher into feeder queues.
+
+For cases where each group is much smaller than the total number of jobs and the number of groups is much larger than the number of feeders, we are basically guaranteed to have the desired spread between jobs.  If there are larger jobs at the tail end they might get less spread out.  Arranging for the bigger job groups to be produced first mitigates this issue.
 
 h2. The code
 
