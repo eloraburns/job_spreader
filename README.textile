@@ -14,6 +14,8 @@ h2. The theory
 
 This algorithm has three logical parts: a dispatcher, a set of feeder queues, and a spreader.
 
+!job_spreader.png!
+
 The dispatcher generates groups of jobs.  Each group contains zero or more jobs.
 
 Each feeder queue asks for a group of jobs from the dispatcher and produces each of the jobs inside one at a time.  When the group it's working on is empty, it asks the dispatcher for another group of jobs.  When the dispatcher has no more groups of jobs to give, the feeder stops producing jobs.
@@ -21,8 +23,6 @@ Each feeder queue asks for a group of jobs from the dispatcher and produces each
 The spreader asks each feeder, in turn, for a job.  It produces each job as it gets them from the feeders.
 
 As an example, let's say we have 2 workers (a truly magic number).  Because some jobs are faster than others, we'd like to spread out the jobs so that each group's jobs occur every 3 jobs in the final output (2 workers plus a fudge factor since not all jobs run for the same length of time).  We'll have 3 feeders, so the first 3 groups from the dispatcher will go into each of the 3 feeders.  The spreader will start taking jobs from each feeder in turn.  As the feeder's job groups empty, each feeder will get the next group from the dispatcher.
-
-!job_spreader.png!
 
 Effectively what we're doing is lazily bin-pack the incoming groups of jobs from the dispatcher into feeder queues.
 
