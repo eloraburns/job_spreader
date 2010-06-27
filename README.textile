@@ -14,7 +14,7 @@ h2. The theory
 
 This algorithm has three logical parts: a dispatcher, a set of feeder queues, and a spreader.
 
-!/taavi/job_spreader/blob/master/job_spreader.png(Image showing relationship of dispatcher to feeders to spreader.)!
+!/taavi/job_spreader/raw/master/job_spreader.png(Image showing relationship of dispatcher to feeders to spreader.)!
 
 The dispatcher generates groups of jobs.  Each group contains zero or more jobs.
 
