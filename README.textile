@@ -14,13 +14,13 @@ h2. The theory
 
 This algorithm has three logical parts: a dispatcher, a set of feeder queues, and a spreader.
 
-!/taavi/job_spreader/raw/master/job_spreader.png(Image showing relationship of dispatcher to feeders to spreader.)!
+!http://github.com/taavi/job_spreader/raw/master/job_spreader.png(Image showing relationship of dispatcher to feeders to spreader.)!
 
 The dispatcher generates groups of jobs.  Each group contains zero or more jobs.
 
-Each feeder queue asks for a group of jobs from the dispatcher and produces each of the jobs inside one at a time.  When the group it's working on is empty, it asks the dispatcher for another group of jobs.  When the dispatcher has no more groups of jobs to give, the feeder stops producing jobs.
+Each feeder queue asks for a group of jobs from the dispatcher, and hands out each of the jobs inside to the spreader one at a time.  When the group it's working on is empty, it asks the dispatcher for another group of jobs.  When the dispatcher has no more groups of jobs to give, the feeder stops handing out jobs.
 
-The spreader asks each feeder, in turn, for a job.  It produces each job as it gets them from the feeders.
+The spreader asks each feeder, in turn, for a job, which it passes along to the message queue.  Because the jobs in each group will come from exactly one feeder, this keeps the jobs in each group spaced out in the message queue, thus avoiding the contention we were so worried about at the beginning.
 
 As an example, let's say we have 2 workers (a truly magic number).  Because some jobs are faster than others, we'd like to spread out the jobs so that each group's jobs occur every 3 jobs in the final output (2 workers plus a fudge factor since not all jobs run for the same length of time).  We'll have 3 feeders, so the first 3 groups from the dispatcher will go into each of the 3 feeders.  The spreader will start taking jobs from each feeder in turn.  As the feeder's job groups empty, each feeder will get the next group from the dispatcher.
 
@@ -38,9 +38,9 @@ Each of the implementations expects an iterator (of some sort) for the dispatche
 
 I find the requirements for creating PHP iterators to be burdensome, and have provided a pair of PHP<->Python iterator converter classes for PHP to ease the pain.  The PHP solution implements a Python-style iterator in PHP.  If you're okay consuming that directly, go for it.  Otherwise you'll want to wrap it in a Py2PHPIterator class so you can make use of @foreach@ and @each@.  You might want to use it for your own dispatcher to simplify the implementation, too. @:)@
 
-I've shown the progression of code from first-implementation to I've-thought-about-this-too-much.  There's an urban story ("StackOverflow doesn't know if it's a myth":http://stackoverflow.com/questions/2898571/basis-for-claim-that-the-number-of-bugs-per-line-of-code-is-constant-regardless-o) that the number of defects per LoC is constant regardless of language.  Even if that's not the case, it's hard to argue that "spreader3_documented.php":/taavi/job_spreader/blob/master/spreader3_documented.php (&cong;39LoC, plus helpers) is less likely to have bugs than "spreader4_documented.py":/taavi/job_spreader/blob/master/spreader4_documented.py (&cong;9LoC, complete).  Once you understand what "spreader4_documented.py":/taavi/job_spreader/blob/master/spreader4_documented.py is doing, there's really nowhere for bugs manifest.
+I've shown the progression of code from first-implementation to I've-thought-about-this-too-much.  There's an urban story ("StackOverflow doesn't know if it's a myth":http://stackoverflow.com/questions/2898571/basis-for-claim-that-the-number-of-bugs-per-line-of-code-is-constant-regardless-o) that the number of defects per LoC is constant regardless of language.  Even if that's not the case, it's hard to argue that "spreader3_documented.php":http://github.com/taavi/job_spreader/blob/master/spreader3_documented.php (&cong;39LoC, plus helpers) is less likely to have bugs than "spreader4_documented.py":http://github.com/taavi/job_spreader/blob/master/spreader4_documented.py (&cong;9LoC, complete).  Once you understand what "spreader4_documented.py":http://github.com/taavi/job_spreader/blob/master/spreader4_documented.py is doing, there's really nowhere for bugs manifest.
 
-You can prove for yourself that the code works by running "spreader_driver.php":/taavi/job_spreader/blob/master/spreader_driver.php and "spreader_driver.py":/taavi/job_spreader/blob/master/spreader_driver.py.  Each prints out the list of expected results at the end (used to assert that the code is working correctly) which you can diff to see that the PHP and Python do the same thing in the end.
+You can prove for yourself that the code works by running "spreader_driver.php":http://github.com/taavi/job_spreader/blob/master/spreader_driver.php and "spreader_driver.py":http://github.com/taavi/job_spreader/blob/master/spreader_driver.py.  Each prints out the list of expected results at the end (used to assert that the code is working correctly) which you can diff to see that the PHP and Python do the same thing in the end.
 
 h2. Why github?
 
