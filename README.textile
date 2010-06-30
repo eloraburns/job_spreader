@@ -24,7 +24,7 @@ The spreader asks each feeder, in turn, for a job, which it passes along to the 
 
 As an example, let's say we have 2 workers (a truly magic number).  Because some jobs are faster than others, we'd like to spread out the jobs so that each group's jobs occur every 3 jobs in the final output (2 workers plus a fudge factor since not all jobs run for the same length of time).  We'll have 3 feeders, so the first 3 groups from the dispatcher will go into each of the 3 feeders.  The spreader will start taking jobs from each feeder in turn.  As the feeder's job groups empty, each feeder will get the next group from the dispatcher.
 
-Effectively what we're doing is lazily bin-pack the incoming groups of jobs from the dispatcher into feeder queues.
+Effectively what we're doing is lazily bin-packing the incoming groups of jobs from the dispatcher into feeder queues.
 
 For cases where each group is much smaller than the total number of jobs and the number of groups is much larger than the number of feeders, we are basically guaranteed to have the desired spread between jobs.  If there are larger jobs at the tail end they might get less spread out.  Arranging for the bigger job groups to be produced first mitigates this issue.
 
